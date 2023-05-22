@@ -2,7 +2,12 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
+
+# north, east, south, west
+DIRECTIONS = np.array([[0, 1], [1, 0], [0, -1], [-1, 0]])
+
 class Tile:
+
 
     def __init__(self, tile_data:np.array):
         self.tile_data = tile_data
@@ -37,9 +42,9 @@ class Tile:
     
     def get_connection(self, direction):
         """get the connection on a given side."""
-        connector_middle_pos = direction + np.array([1, 1])
-        return self.tile_data[connector_middle_pos[0], connector_middle_pos[1]]
-        
+        side_index = -(direction[0] + direction[1] + 1) // 2
+        return self.tile_data[side_index] if direction[1] == 0 else self.tile_data[:, side_index]
+
     def get_possible_neighbors(self, direction, all_tiles):
         """"""
         possible_neighbors = []
@@ -144,6 +149,7 @@ class TileGrid:
         self.all_tiles = all_tiles
         self.cells = [[Cell(self, (row, col)) for col in range(n_cols)] for row in range(n_rows)]
         self.collapsed_cells = []
+        self.tile_size = self.all_tiles[0].tile_data.shape[0]
 
     def get_cell(self, row, col):
         return self.cells[row][col]
@@ -190,17 +196,14 @@ class TileGrid:
         # go through the rows
         for row in range(self.n_rows):
             # add the top border
-            for tile_row in range(3):
+            for tile_row in range(self.tile_size):
                 for col in range(self.n_cols):
                     if len(self.cells[row][col]) > 1:
-                        grid_string += "XXXXXX"
+                        grid_string += "XX"*self.tile_size
                     else:
-                        for tile_col in range(3):
-                            try:
-                                grid_string += "  " if self.cells[row][col][0][tile_row][tile_col] == 0 else "██"
-                            except IndexError:
-                                print(row, col, len(self.cells[row][col]))
-                                raise IndexError
+                        for tile_col in range(self.tile_size):
+                            grid_string += "  " if self.cells[row][col][0][tile_row][tile_col] == 0 else "██"
+                            
                 grid_string += "\n"
 
         return grid_string[:-2] # remove last newline
@@ -250,8 +253,6 @@ def get_similar_tiles(tile_data):
 
 
 def main():
-    # north, east, south, west
-    DIRECTIONS = np.array([[0, 1], [1, 0], [0, -1], [-1, 0]])
 
     base_tiles = {
         " ": np.array([
@@ -272,25 +273,30 @@ def main():
         "L": np.array([
             [0, 0, 0],
             [1, 1, 0,],
-            [0, 1, 0],
+            [0.5, 1, 0],
+        ]),
+        "L*": np.array([
+            [0.5, 0.5, 0.5],
+            [1, 1, 0.5,],
+            [0, 1, 0.5],
         ]),
         "-": np.array([
-            [0, 0, 0],
+            [0.5, 0.5, 0.5],
             [1, 1, 1,],
             [0, 0, 0],
         ]),
     }
 
-    tile_for_this_run = [" ", "L", "+", "-"]
+    tile_for_this_run = [" ", "L", "-", "L*"]
 
     all_tiles = []
     for tile_name in tile_for_this_run:    
         all_tiles += get_similar_tiles(base_tiles[tile_name])
 
-    grid = TileGrid(40, 40, all_tiles)
+    grid = TileGrid(10, 10, all_tiles)
     while grid.step():
         pass
     grid.show_options()
 
-    if __name__ == "__main__":
-        main()
+if __name__ == "__main__":
+    main()
